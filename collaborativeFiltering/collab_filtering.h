@@ -19,7 +19,7 @@ using namespace std;
 #define LATENT_SPACE	25
 
 /* Set maximum iterations. */
-#define MAX_ITERATION	25
+#define MAX_ITERATION	100
 
 /* Structure containing users info. */
 struct users {
