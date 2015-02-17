@@ -32,9 +32,9 @@ int main() {
 	unsigned int totalBusiness;
 
 	/* Parse the review data.*/
-	parse_users(allUsers, userNumID);
-	parse_business(allBusiness, businessNumID);
-	parse_review(allUsers, allBusiness, userNumID, businessNumID);
+	parseUsers(allUsers, userNumID);
+	parseBusiness(allBusiness, businessNumID);
+	parseReview(allUsers, allBusiness, userNumID, businessNumID);
 
 	totalUsers = allUsers.size();
 	totalBusiness = allBusiness.size();
@@ -99,7 +99,7 @@ int main() {
 				unsigned int businessID = allUsers[i].businessReviewed[j];
 
 				/* Get the corresponding rating given by user to this business. */
-				double z_ij = allUsers[i].stars[businessID];
+				double z_ij = allUsers[i].stars[businessID] - 2.5;
 
 				/* Start accumulating user features as per update rule. */
 				for (unsigned int l = 0; l < LATENT_SPACE; l++) {
@@ -130,7 +130,7 @@ int main() {
 				unsigned int userID = allBusiness[i].usersReviewed[j];
 
 				/* Get the corresponding rating received by business from this user. */
-				double z_ij = allBusiness[i].stars[userID];
+				double z_ij = allBusiness[i].stars[userID] - 2.5;
 
 				/* Start accumulating business features as per update rule. */
 				for (unsigned int l = 0; l < LATENT_SPACE; l++) {
@@ -148,8 +148,13 @@ int main() {
 		cout << "Iteration " << k + 1 << " completed!" << endl;
 	}
 
+	cout << "Logging the computed features." << endl;
 	/* Save the estimated user and business data. */
 	logUserBusinessFeatures(u, v, totalUsers, totalBusiness);
+
+	cout << "Validating the computed features." << endl;
+	/* Validate the computed features with existing reviews. */
+	validateAndLogReviews(allUsers, allBusiness, u, v);
 
 	/* Free up the allocated memory. */
 	for (unsigned int i = 0; i < totalUsers; i++) {

@@ -16,10 +16,10 @@
 using namespace std;
 
 /* Size of the latent space of each of the users and business objects. */
-#define LATENT_SPACE	25
+#define LATENT_SPACE	50
 
 /* Set maximum iterations. */
-#define MAX_ITERATION	100
+#define MAX_ITERATION	500
 
 /* Structure containing users info. */
 struct users {
@@ -52,14 +52,14 @@ struct business {
 };
 
 /* Parses the users JSON object. */
-void parse_users(vector<users> &allUsers, map<string, unsigned int> &userNumID);
+void parseUsers(vector<users> &allUsers, map<string, unsigned int> &userNumID);
 
 /* Parses the business JSON object. */
-void parse_business(vector<business> &allBusiness,
+void parseBusiness(vector<business> &allBusiness,
 		map<string, unsigned int> &businessNumID);
 
 /* Parses the reviews JSON object and populate users and business data objects. */
-void parse_review(vector<users> &allUsers, vector<business> &allBusiness,
+void parseReview(vector<users> &allUsers, vector<business> &allBusiness,
 		map<string, unsigned int> &userNumID,
 		map<string, unsigned int> &businessNumID);
 

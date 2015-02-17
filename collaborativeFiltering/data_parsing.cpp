@@ -16,7 +16,7 @@
 using namespace std;
 using namespace rapidjson;
 
-void parse_users(vector<users> &allUsers,
+void parseUsers(vector<users> &allUsers,
 		map<string, unsigned int> &userNumID) {
 	ifstream ifs(USER_DATASET);
 	string str;
@@ -40,7 +40,7 @@ void parse_users(vector<users> &allUsers,
 	}
 }
 
-void parse_business(vector<business> &allBusiness,
+void parseBusiness(vector<business> &allBusiness,
 		map<string, unsigned int> &businessNumID) {
 	ifstream ifs(BUSINESS_DATASET);
 	string str;
@@ -64,7 +64,7 @@ void parse_business(vector<business> &allBusiness,
 	}
 }
 
-void parse_review(vector<users> &allUsers, vector<business> &allBusiness,
+void parseReview(vector<users> &allUsers, vector<business> &allBusiness,
 		map<string, unsigned int> &userNumID,
 		map<string, unsigned int> &businessNumID) {
 	ifstream ifs(REVIEW_DATASET);
@@ -92,10 +92,10 @@ void parse_review(vector<users> &allUsers, vector<business> &allBusiness,
 		busines = &allBusiness[businessNumericID];
 
 		user->businessReviewed.push_back(businessNumericID);
-		user->stars[businessNumericID] = document["stars"].GetDouble() - 2.5;
+		user->stars[businessNumericID] = document["stars"].GetDouble();
 
 		busines->usersReviewed.push_back(userNumericID);
-		busines->stars[userNumericID] = document["stars"].GetDouble() - 2.5;
+		busines->stars[userNumericID] = document["stars"].GetDouble();
 	}
 }
 
