@@ -16,46 +16,71 @@
 #include "collab_filtering.h"
 
 string getCurrentTimeString() {
-	time_t rawtime;
-	struct tm * timeinfo;
+	time_t rawTime;
+	struct tm * timeInfo;
 	char buffer[80];
 
 	time(&rawtime);
-	timeinfo = localtime(&rawtime);
+	timeInfo = localtime(&rawTime);
 
-	strftime(buffer, 80, "%d_%m_%Y_%I_%M_%S", timeinfo);
+	strftime(buffer, 80, "%d_%m_%Y_%I_%M_%S", timeInfo);
 	string str(buffer);
 
 	return str;
 }
 
-void logUserBusinessFeatures(double **u, double **v, unsigned int totalUsers,
-		unsigned int totalBusiness) {
-	ofstream fout;
-	string userFileName;
-	string businessFileName;
-	ostringstream sl;
-	ostringstream si;
+string getLogFileName(logTypes t, unsigned int latentSpace,
+		unsigned int maxIterations) {
+	string logFileName;
+	ostringstream strLatentSpace;
+	ostringstream strMaxIterations;
 
-	sl << LATENT_SPACE;
-	si << MAX_ITERATION;
+	logFileName.append(OP_FILENAME_PRE);
+
+	switch (t) {
+	case LOG_USER_FEATURES:
+		logFileName.append("U_");
+		break;
+
+	case LOG_BUSINESS_FEATURES:
+		logFileName.append("V_");
+		break;
+
+	case LOG_VALIDATION_DATA:
+		logFileName.append("D_");
+		break;
+
+	case LOG_MEAN_SQUARE_ERROR:
+		logFileName.append("M_");
+		break;
+	}
+
+	logFileName.append(getCurrentTimeString());
+	strLatentSpace << latentSpace;
+	strMaxIterations << maxIterations;
+	logFileName.append("_K_");
+	logFileName.append(strLatentSpace.str());
+	logFileName.append("_I_");
+	logFileName.append(strMaxIterations.str());
+	logFileName.append(OP_FILENAME_EXT);
+
+	return logFileName;
+}
+
+void logUserBusinessFeatures(double **u, double **v, unsigned int totalUsers,
+		unsigned int totalBusiness, unsigned int latentSpace,
+		unsigned int maxIterations) {
+	ofstream fout;
+	string logFileName;
 
 	/* Save the user features. */
-	userFileName = "..\\..\\dump\\U_";
-	userFileName.append(getCurrentTimeString());
-	userFileName.append("_LS_");
-	userFileName.append(sl.str());
-	userFileName.append("_ITR_");
-	userFileName.append(si.str());
-	userFileName.append(OP_FILENAME_EXT);
-	char ufn[userFileName.length() + 1];
-	copy(userFileName.begin(), userFileName.end(), ufn);
-	ufn[userFileName.length()] = '\0';
-	fout.open(ufn);
+	logFileName = getLogFileName(LOG_USER_FEATURES, latentSpace,
+			maxIterations);
+	fout.open(logFileName.c_str());
 
 	for (unsigned int i = 0; i < totalUsers; i++) {
 		fout << "u " << setw(6) << i << ", ";
-		for (unsigned int j = 0; j < LATENT_SPACE; j++) {
+		for (unsigned int j = 0; j < latentSpace; j++) {
 			fout << setw(13) << setprecision(5) << u[i][j] << ", ";
 		}
 
@@ -65,21 +90,13 @@ void logUserBusinessFeatures(double **u, double **v, unsigned int totalUsers,
 	fout.close();
 
 	/* Save the business features. */
-	businessFileName = "..\\..\\dump\\V_";
-	businessFileName.append(getCurrentTimeString());
-	businessFileName.append("_LS_");
-	businessFileName.append(sl.str());
-	businessFileName.append("_ITR_");
-	businessFileName.append(si.str());
-	businessFileName.append(OP_FILENAME_EXT);
-	char ufn1[businessFileName.length() + 1];
-	copy(businessFileName.begin(), businessFileName.end(), ufn1);
-	ufn1[businessFileName.length()] = '\0';
-	fout.open(ufn1);
+	logFileName = getLogFileName(LOG_BUSINESS_FEATURES, latentSpace,
+			maxIterations);
+	fout.open(logFileName.c_str());
 
 	for (unsigned int i = 0; i < totalBusiness; i++) {
 		fout << "v " << setw(6) << i << ", ";
-		for (unsigned int j = 0; j < LATENT_SPACE; j++) {
+		for (unsigned int j = 0; j < latentSpace; j++) {
 			fout << setw(13) << setprecision(5) << v[i][j] << ", ";
 		}
 
@@ -90,28 +107,15 @@ void logUserBusinessFeatures(double **u, double **v, unsigned int totalUsers,
 }
 
 void validateAndLogReviews(vector<users> &allUsers,
-		vector<business> &allBusiness, double **u, double **v) {
+		vector<business> &allBusiness, double **u, double **v,
+		unsigned int latentSpace, unsigned int maxIterations) {
 	unsigned int totalUsers = allUsers.size();
-	unsigned int totalReviews = 0;
 	ofstream fout;
 	string logFileName;
-	ostringstream sl;
-	ostringstream si;
-	double meanSquareError = 0.0;
 
-	sl << LATENT_SPACE;
-	si << MAX_ITERATION;
-	logFileName = "..\\..\\dump\\VALIDATION_";
-	logFileName.append(getCurrentTimeString());
-	logFileName.append("_LS_");
-	logFileName.append(sl.str());
-	logFileName.append("_ITR_");
-	logFileName.append(si.str());
-	logFileName.append(OP_FILENAME_EXT);
-	char ufn[logFileName.length() + 1];
-	copy(logFileName.begin(), logFileName.end(), ufn);
-	ufn[logFileName.length()] = '\0';
-	fout.open(ufn);
+	logFileName = getLogFileName(LOG_VALIDATION_DATA, latentSpace,
+			maxIterations);
+	fout.open(logFileName.c_str());
 
 	for (unsigned int i = 0; i < totalUsers; i++) {
 		for (unsigned int j = 0; j < allUsers[i].businessReviewed.size(); j++) {
@@ -119,16 +123,12 @@ void validateAndLogReviews(vector<users> &allUsers,
 			double computedRating = 0.0;
 			double actualRating = allUsers[i].stars[businessNumID];
 
-			for (unsigned int k = 0; k < LATENT_SPACE; k++) {
+			for (unsigned int k = 0; k < latentSpace; k++) {
 				computedRating += u[i][k] * v[businessNumID][k];
 			}
 
 			/* Bump up the rating by 2.5*/
 			computedRating += 2.5;
-			totalReviews++;
-			meanSquareError += (computedRating - actualRating)
-					* (computedRating - actualRating);
-
 			fout << setw(6) << allUsers[i].numericID << ", ";
 			fout << allUsers[i].genericID << ", ";
 			fout << setw(6) << allBusiness[businessNumID].numericID << ", ";
@@ -140,7 +140,80 @@ void validateAndLogReviews(vector<users> &allUsers,
 		}
 	}
 
-	cout << endl << "Mean Square Error is " << meanSquareError / totalReviews
-			<< endl;
 	fout.close();
+}
+
+void logMsePerIteration(double *mse, unsigned int latentSpace,
+		unsigned int maxIterations) {
+	ofstream fout;
+	string logFileName;
+
+	logFileName = getLogFileName(LOG_MEAN_SQUARE_ERROR, latentSpace,
+			maxIterations);
+	fout.open(logFileName.c_str());
+
+	for (unsigned int i = 0; i < maxIterations; i++) {
+		fout << setw(3) << i + 1 << ", " << setw(10) << setprecision(5) << mse[i]
+				<< "," << endl;
+	}
+
+	fout.close();
+}
+
+double computeMSE(vector<users> &allUsers, vector<business> &allBusiness,
+		double **u, double **v, unsigned int latentSpace) {
+	unsigned int totalUsers = allUsers.size();
+	unsigned int totalReviews = 0;
+	double meanSquareError = 0.0;
+
+	for (unsigned int i = 0; i < totalUsers; i++) {
+		for (unsigned int j = 0; j < allUsers[i].businessReviewed.size(); j++) {
+			unsigned int businessNumID = allUsers[i].businessReviewed[j];
+			double computedRating = 0.0;
+			double actualRating = allUsers[i].stars[businessNumID];
+
+			for (unsigned int k = 0; k < latentSpace; k++) {
+				computedRating += u[i][k] * v[businessNumID][k];
+			}
+
+			/* Bump up the rating by 2.5*/
+			computedRating += 2.5;
+			totalReviews++;
+			meanSquareError += (computedRating - actualRating)
+					* (computedRating - actualRating);
+		}
+	}
+
+	meanSquareError = meanSquareError / totalReviews;
+	return meanSquareError;
+}
+
+void runPMFbatch(vector<users> &allUsers, vector<business> &allBusiness) {
+	ifstream fin;
+	string batchFileName;
+
+	fin.open(BATCH_INPUT_TEXT);
+	unsigned int n;
+	fin >> n;
+
+	unsigned int *latentSpace = new unsigned int[n];
+	unsigned int *maxIterations = new unsigned int[n];
+
+	for (unsigned int i = 0; i < n; i++) {
+		fin >> latentSpace[i];
+		fin >> maxIterations[i];
+	}
+
+	fin.close();
+
+	for (unsigned int i = 0; i < n; i++) {
+		cout << "Running PMF No Regularization Algorithm with K = "
+				<< latentSpace[i] << " for " << maxIterations[i]
+				<< " iterations." << endl;
+		probMatFacNoReg(allUsers, allBusiness, latentSpace[i],
+				maxIterations[i]);
+	}
+
+	delete latentSpace;
+	delete maxIterations;
 }

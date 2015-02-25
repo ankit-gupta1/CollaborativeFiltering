@@ -15,12 +15,6 @@
 
 using namespace std;
 
-/* Size of the latent space of each of the users and business objects. */
-#define LATENT_SPACE	25
-
-/* Set maximum iterations. */
-#define MAX_ITERATION	100
-
 /* Structure containing users info. */
 struct users {
 	/* Generic string based ID of each user obtained from JSON database. */
@@ -62,5 +56,10 @@ void parseBusiness(vector<business> &allBusiness,
 void parseReview(vector<users> &allUsers, vector<business> &allBusiness,
 		map<string, unsigned int> &userNumID,
 		map<string, unsigned int> &businessNumID);
+
+/* An implementation of probablistic matrix factorization algorithm with
+ * no regularization parameters.*/
+void probMatFacNoReg(vector<users> &allUsers, vector<business> &allBusiness,
+		unsigned int latentSpace, unsigned int maxIterations);
 
 #endif /* COLLAB_FILTERING_H_ */

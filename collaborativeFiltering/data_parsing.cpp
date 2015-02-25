@@ -16,18 +16,17 @@
 using namespace std;
 using namespace rapidjson;
 
-void parseUsers(vector<users> &allUsers,
-		map<string, unsigned int> &userNumID) {
+void parseUsers(vector<users> &allUsers, map<string, unsigned int> &userNumID) {
 	ifstream ifs(USER_DATASET);
 	string str;
 	Document document;
 	unsigned int count = 0;
 
+	cout << "Parsing user data" << endl;
+
 	while (getline(ifs, str)) {
 		users user;
-		char buffer[str.length() + 1];
-		copy(str.begin(), str.end(), buffer);
-		buffer[str.length()] = '\0';
+		char *buffer = (char *) str.c_str();
 
 		if (document.ParseInsitu(buffer).HasParseError()) {
 			return;
@@ -47,11 +46,11 @@ void parseBusiness(vector<business> &allBusiness,
 	Document document;
 	unsigned int count = 0;
 
+	cout << "Parsing business data" << endl;
+
 	while (getline(ifs, str)) {
 		business busines;
-		char buffer[str.length() + 1];
-		copy(str.begin(), str.end(), buffer);
-		buffer[str.length()] = '\0';
+		char *buffer = (char *) str.c_str();
 
 		if (document.ParseInsitu(buffer).HasParseError()) {
 			return;
@@ -71,12 +70,12 @@ void parseReview(vector<users> &allUsers, vector<business> &allBusiness,
 	string str;
 	Document document;
 
+	cout << "Parsing review data" << endl;
+
 	while (getline(ifs, str)) {
 		business *busines;
 		users *user;
-		char buffer[str.length() + 1];
-		copy(str.begin(), str.end(), buffer);
-		buffer[str.length()] = '\0';
+		char *buffer = (char *) str.c_str();
 
 		if (document.ParseInsitu(buffer).HasParseError()) {
 			return;
