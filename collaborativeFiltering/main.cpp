@@ -34,7 +34,7 @@ int main() {
 	parseReview(allUsers, allBusiness, userNumID, businessNumID);
 
 	/* Perform collaborative filtering using PMF with no regularization parameters*/
-	runPMFbatch(allUsers, allBusiness);
+	runPmfBatch(allUsers, allBusiness);
 
 	return 0;
 }

@@ -21,14 +21,28 @@ using namespace std;
 #define REVIEW_DATASET		"..\\..\\yelp_dataset_challenge_academic_dataset\\yelp_academic_dataset_review.json"
 #define BATCH_INPUT_TEXT	"input.txt"
 
+/* Number of times for which you want to cross validate. */
+#define NO_OF_TRIALS		5
+
+/* These parameters help in sampling reviews to Training : Validation : Test ::
+ * 5.5 : 1 : 1, roughly speaking. With this ratio of training corpus and
+ * validation data, we are preventing to over fit our model and at the same
+ * time minimize the RMSE on test data as well. */
+#define SAMP_PARAM_VAL		13
+#define SAMP_PARAM_TEST		6
+
 #define LOG_FEATURES		0
-#define LOG_MSE 			1
+#define LOG_MSE 			0
+#define FORCE_INPUT			0
 
 typedef enum {
 	LOG_USER_FEATURES = 1,
 	LOG_BUSINESS_FEATURES,
+	LOG_TRAINING_DATA,
 	LOG_VALIDATION_DATA,
+	LOG_TEST_DATA,
 	LOG_MEAN_SQUARE_ERROR,
+	LOG_BATCH_RESULTS,
 } logTypes;
 
 /* Utility to get current time and date in a string. */
@@ -38,28 +52,24 @@ string getCurrentTimeString();
 string getLogFileName(logTypes t, unsigned int latentSpace,
 		unsigned int maxIterations);
 
-/* Log the feature vectors of business and user data. */
-void logUserBusinessFeatures(double **u, double **v, unsigned int totalUsers,
-		unsigned int totalBusiness,
-		unsigned int latentSpace,
-		unsigned int maxIterations);
+/* Log MSE per iteration. */
+void logMsePerIteration(collaborativeFiltering &collabFilteringModel);
 
 /* Validate the computed features with existing reviews and log the review data. */
-void validateAndLogReviews(vector<users> &allUsers,
-		vector<business> &allBusiness, double **u, double **v,
-		unsigned int latentSpace,
-		unsigned int maxIterations);
+void validateAndLogReviews(collaborativeFiltering &collabFilteringModel,
+		logTypes logType);
 
-/* Log the Mean Square Error per iteration. */
-void logMsePerIteration(double *mse, unsigned int latentSpace,
-		unsigned int maxIterations);
+/* Log the feature vectors of business and user data. */
+void logUserBusinessFeatures(collaborativeFiltering &collabFilteringModel);
 
 /* Compute the Mean Square Error for predicted ratings against the original ones. */
-double computeMSE(vector<users> &allUsers,
-		vector<business> &allBusiness, double **u, double **v,
-		unsigned int latentSpace);
+double computeMSE(collaborativeFiltering &collabFilteringModel,
+		testDataType testingDataType);
 
 /* Run PMF algorithm for multiple feature space and iteration settings. */
-void runPMFbatch(vector<users> &allUsers, vector<business> &allBusiness);
+void runPmfBatch(vector<users> &allUsers, vector<business> &allBusiness);
+
+void logBatchResults(collaborativeFiltering *collabFilteringModel,
+		unsigned int batchSize);
 
 #endif /* UTILS_H_ */
