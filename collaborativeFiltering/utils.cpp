@@ -23,8 +23,8 @@
  * over-fitting. Also, these iteration caps for each model were found after
  * experimenting on fixed iterations of 25 for different feature lengths
  * ranging from 3 to 20. */
-const unsigned int sweetSpotOptIter[18] { 22, 16, 13, 12, 12, 12, 11, 11, 11, 10,
-		10, 10, 10, 9, 9, 9, 9, 9, };
+const unsigned int sweetSpotOptIter[18] { 22, 16, 13, 12, 12, 12, 11, 11, 11,
+		10, 10, 10, 10, 9, 9, 9, 9, 9, };
 
 /* This function returns the current time in the form of underscore separated
  * time data string, which is very useful in creating new log files for each
@@ -216,8 +216,7 @@ void validateAndLogReviews(collaborativeFiltering &collabFilteringModel,
 	} else if (testingDataType == TESTING_DATA) {
 		reviewVec = &(collabFilteringModel.testReviews);
 		logType = LOG_TEST_DATA;
-	}
-	else {
+	} else {
 
 		/* Else return if invalid request. */
 		return;
@@ -254,10 +253,10 @@ void validateAndLogReviews(collaborativeFiltering &collabFilteringModel,
 	for (unsigned int i = 0; i < totalReviews; i++) {
 
 		/* Get the business ID. */
-		unsigned int businessNumID = (*reviewVec)[i].bussNumId;
+		unsigned int businessID = (*reviewVec)[i].bussinessId;
 
 		/* Get the user ID. */
-		unsigned int userNumID = (*reviewVec)[i].userNumId;
+		unsigned int userID = (*reviewVec)[i].userId;
 
 		/* Initialize the computed rating to 0.0. */
 		double computedRating = 0.0;
@@ -267,17 +266,17 @@ void validateAndLogReviews(collaborativeFiltering &collabFilteringModel,
 
 		/* Now accumulate the rating. */
 		for (unsigned int k = 0; k < latentSpace; k++) {
-			computedRating += u[userNumID][k] * v[businessNumID][k];
+			computedRating += u[userID][k] * v[businessID][k];
 		}
 
 		/* Bump up the rating by 2.5*/
 		computedRating += 2.5;
 
 		/* Now write all the pertinent data into file. */
-		fout << setw(6) << userNumID << ", ";
-		fout << (*allUsers)[userNumID].genericID << ", ";
-		fout << setw(6) << businessNumID << ", ";
-		fout << (*allBusiness)[businessNumID].genericID << ", ";
+		fout << setw(6) << userID << ", ";
+		fout << (*allUsers)[userID].genericID << ", ";
+		fout << setw(6) << businessID << ", ";
+		fout << (*allBusiness)[businessID].genericID << ", ";
 		fout << setw(5) << setprecision(5) << actualRating << ", ";
 		fout << setw(10) << setprecision(5) << computedRating << ", ";
 		fout << setw(13) << setprecision(5) << (actualRating - computedRating)
@@ -364,10 +363,10 @@ double computeMSE(collaborativeFiltering &collabFilteringModel,
 	for (unsigned int i = 0; i < totalReviews; i++) {
 
 		/* Get the business ID for the business to be reviewed. */
-		unsigned int businessNumID = (*reviewVec)[i].bussNumId;
+		unsigned int businessID = (*reviewVec)[i].bussinessId;
 
 		/* Get the user ID. */
-		unsigned int userID = (*reviewVec)[i].userNumId;
+		unsigned int userID = (*reviewVec)[i].userId;
 
 		/* Initialize the computed rating as 0.0*/
 		double computedRating = 0.0;
@@ -377,7 +376,7 @@ double computeMSE(collaborativeFiltering &collabFilteringModel,
 
 		/* Now accumulate the rating. */
 		for (unsigned int k = 0; k < latentSpace; k++) {
-			computedRating += u[userID][k] * v[businessNumID][k];
+			computedRating += u[userID][k] * v[businessID][k];
 		}
 
 		/* Bump up the rating by 2.5*/
@@ -486,9 +485,10 @@ void runPmfBatch(vector<users> &allUsers, vector<business> &allBusiness) {
 		 * error results and log its average values. */
 		for (unsigned int j = 0; j < NO_OF_TRIALS; j++) {
 
-			cout << "Running PMF Algorithm with K = " << latentSpace[i] << " for "
-					<< maxIterations[i] << " iterations, lambda U = " << lambdaU[i]
-					<< ", lambda V = " << lambdaV[i] << ", trial " << j + 1 <<  endl;
+			cout << "Running PMF Algorithm with K = " << latentSpace[i]
+					<< " for " << maxIterations[i] << " iterations, lambda U = "
+					<< lambdaU[i] << ", lambda V = " << lambdaV[i] << ", trial "
+					<< j + 1 << endl;
 
 			/* Initialize the model. */
 			initCollabFilteringModel(collabFilteringModel, allUsers,
@@ -521,7 +521,7 @@ void runPmfBatch(vector<users> &allUsers, vector<business> &allBusiness) {
 
 #if LOG_MSE
 			cout << "Logging the mean square error after every iteration."
-					<< endl;
+			<< endl;
 
 			/* Log the mean square error. */
 			logMsePerIteration(collabFilteringModel);
@@ -546,8 +546,10 @@ void runPmfBatch(vector<users> &allUsers, vector<business> &allBusiness) {
 		fout << setw(13) << setprecision(5) << maxIterations[i] << ", ";
 		fout << setw(13) << setprecision(5) << lambdaU[i] << ", ";
 		fout << setw(13) << setprecision(5) << lambdaV[i] << ", ";
-		fout << setw(13) << setprecision(5) << rmseTraining / NO_OF_TRIALS << ", ";
-		fout << setw(13) << setprecision(5) << rmseValidation / NO_OF_TRIALS << ", ";
+		fout << setw(13) << setprecision(5) << rmseTraining / NO_OF_TRIALS
+				<< ", ";
+		fout << setw(13) << setprecision(5) << rmseValidation / NO_OF_TRIALS
+				<< ", ";
 		fout << setw(13) << setprecision(5) << rmseTest / NO_OF_TRIALS << ", ";
 		fout << endl;
 	}

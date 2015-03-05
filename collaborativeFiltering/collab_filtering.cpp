@@ -75,8 +75,8 @@ void randomlyPickReviews(collaborativeFiltering &collabFilteringModel,
 		/* Review picking rule, if the number of businesses reviewed by
 		 * the user is less than 5, then pick only one review, else pick
 		 * at most 20% of the reviews. */
-		if (numOfBusinessReviewed
-				> 1&& numOfBusinessReviewed <= sampling_parameter) {
+		if (numOfBusinessReviewed > 1
+				&& numOfBusinessReviewed <= sampling_parameter) {
 			targetReviews = 1;
 		} else if (numOfBusinessReviewed > sampling_parameter) {
 			targetReviews = (numOfBusinessReviewed / sampling_parameter);
@@ -113,10 +113,10 @@ void randomlyPickReviews(collaborativeFiltering &collabFilteringModel,
 				review newReview;
 
 				/* Populate the user ID. */
-				newReview.userNumId = userID;
+				newReview.userId = userID;
 
 				/* Populate the business ID. */
-				newReview.bussNumId = businessID;
+				newReview.bussinessId = businessID;
 
 				/* Get the rating awarded by user 'i' to business 'businessID'. */
 				newReview.stars = (*trainUsers)[userID].stars[businessID];
@@ -238,10 +238,10 @@ void initCollabFilteringModel(collaborativeFiltering &collabFilteringModel,
 			review newReview;
 
 			/* Assign the user ID i. */
-			newReview.userNumId = i;
+			newReview.userId = i;
 
 			/* Get the key to set as the business ID. */
-			newReview.bussNumId = itr->first;
+			newReview.bussinessId = itr->first;
 
 			/* Get its corresponding value which will be the rating
 			 * given by user 'i' to this business.*/

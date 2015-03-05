@@ -22,7 +22,7 @@ using namespace std;
 #define BATCH_INPUT_TEXT	"input.txt"
 
 /* Number of times for which you want to cross validate. */
-#define NO_OF_TRIALS		5
+#define NO_OF_TRIALS		2
 
 /* These parameters help in sampling reviews to Training : Validation : Test ::
  * 5.5 : 1 : 1, roughly speaking. With this ratio of training corpus and
@@ -69,6 +69,7 @@ double computeMSE(collaborativeFiltering &collabFilteringModel,
 /* Run PMF algorithm for multiple feature space and iteration settings. */
 void runPmfBatch(vector<users> &allUsers, vector<business> &allBusiness);
 
+/* Log the batch run of model results. */
 void logBatchResults(collaborativeFiltering *collabFilteringModel,
 		unsigned int batchSize);
 

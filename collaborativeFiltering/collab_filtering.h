@@ -49,9 +49,15 @@ struct business {
 	map<unsigned int, double> stars;
 };
 
+/* Structure containing review information*/
 struct review {
-	unsigned int userNumId;
-	unsigned int bussNumId;
+	/* User ID of the user. */
+	unsigned int userId;
+
+	/* Business ID of the business. */
+	unsigned int bussinessId;
+
+	/* Rating provided by user to the business. */
 	double stars;
 };
 
@@ -131,8 +137,8 @@ void initCollabFilteringModel(collaborativeFiltering &collabFilteringModel,
 /* De-initialize the collaborative filtering model. */
 void deinitCollabFilteringModel(collaborativeFiltering &collabFilteringModel);
 
+/* Randomly pick reviews for test and validation data set*/
 void randomlyPickReviews(collaborativeFiltering &collabFilteringModel,
 		testDataType testingDataType);
 
-void reInitCollabFiltering(collaborativeFiltering &collabFilteringModel);
 #endif /* COLLAB_FILTERING_H_ */
