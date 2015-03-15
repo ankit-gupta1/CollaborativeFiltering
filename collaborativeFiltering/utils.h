@@ -24,7 +24,7 @@ using namespace std;
 #define YELP				1
 
 /* Number of times for which you want to cross validate. */
-#define NO_OF_TRIALS		3
+#define NO_OF_TRIALS		4
 
 /* These parameters help in sampling reviews to Training : Validation : Test ::
  * 5.5 : 1 : 1, roughly speaking. With this ratio of training corpus and
@@ -35,7 +35,7 @@ using namespace std;
 
 #define LOG_FEATURES		0
 #define LOG_MSE 			0
-#define FORCE_INPUT			0
+#define FORCE_INPUT			1
 
 typedef enum {
 	LOG_USER_FEATURES = 1,
@@ -74,5 +74,7 @@ void runPmfBatch(vector<users> &allUsers, vector<business> &allBusiness);
 /* Log the batch run of model results. */
 void logBatchResults(collaborativeFiltering *collabFilteringModel,
 		unsigned int batchSize);
+
+void runPmfBatchOMP(vector<users> &allUsers, vector<business> &allBusiness);
 
 #endif /* UTILS_H_ */

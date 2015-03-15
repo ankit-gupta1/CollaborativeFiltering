@@ -31,7 +31,7 @@ int main() {
 #endif
 
 	/* Perform collaborative filtering using PMF. */
-	runPmfBatch(allUsers, allBusiness);
+	runPmfBatchOMP(allUsers, allBusiness);
 
 	return 0;
 }
