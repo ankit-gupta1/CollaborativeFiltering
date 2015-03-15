@@ -14,15 +14,17 @@
 
 using namespace std;
 
-#define OP_FILENAME_PRE		"..\\..\\dump\\"
+#define OP_FILENAME_PRE		"../../dump/"
 #define OP_FILENAME_EXT		".txt"
-#define USER_DATASET		"..\\..\\yelp_dataset_challenge_academic_dataset\\yelp_academic_dataset_user.json"
-#define BUSINESS_DATASET	"..\\..\\yelp_dataset_challenge_academic_dataset\\yelp_academic_dataset_business.json"
-#define REVIEW_DATASET		"..\\..\\yelp_dataset_challenge_academic_dataset\\yelp_academic_dataset_review.json"
+#define USER_DATASET		"../../yelp_dataset_challenge_academic_dataset/yelp_academic_dataset_user.json"
+#define BUSINESS_DATASET	"../../yelp_dataset_challenge_academic_dataset/yelp_academic_dataset_business.json"
+#define REVIEW_DATASET		"../../yelp_dataset_challenge_academic_dataset/yelp_academic_dataset_review.json"
 #define BATCH_INPUT_TEXT	"input.txt"
+#define NETFLIX_DATASET		"../../netflix_dataset/training_set/"
+#define YELP				1
 
 /* Number of times for which you want to cross validate. */
-#define NO_OF_TRIALS		2
+#define NO_OF_TRIALS		3
 
 /* These parameters help in sampling reviews to Training : Validation : Test ::
  * 5.5 : 1 : 1, roughly speaking. With this ratio of training corpus and

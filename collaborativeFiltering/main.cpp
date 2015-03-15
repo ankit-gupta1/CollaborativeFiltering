@@ -22,18 +22,15 @@ int main() {
 	/* List of all the business present in the database. */
 	vector<business> allBusiness;
 
-	/* A hash-map for user's generic string ID to its assigned numeric ID. */
-	map<string, unsigned int> userNumID;
+#if YELP
+	/* Parse Yelp data set. */
+	parseYelpData(allUsers, allBusiness);
+#else
+	/* Parse Netflix data set. */
+	parseNetflixData(allUsers, allBusiness);
+#endif
 
-	/* A hash-map for business's generic string ID to its assigned numeric ID. */
-	map<string, unsigned int> businessNumID;
-
-	/* Parse the review data. */
-	parseUsers(allUsers, userNumID);
-	parseBusiness(allBusiness, businessNumID);
-	parseReview(allUsers, allBusiness, userNumID, businessNumID);
-
-	/* Perform collaborative filtering using PMF with no regularization parameters*/
+	/* Perform collaborative filtering using PMF. */
 	runPmfBatch(allUsers, allBusiness);
 
 	return 0;

@@ -124,6 +124,8 @@ void parseReview(vector<users> &allUsers, vector<business> &allBusiness,
 		map<string, unsigned int> &userNumID,
 		map<string, unsigned int> &businessNumID);
 
+void parseNetflixData(vector<users> &allUsers, vector<business> &allBusiness);
+
 /* An implementation of probablistic matrix factorization algorithm.*/
 void probablisticMatrixFactorization(
 		collaborativeFiltering &collabFilteringModel);
@@ -140,5 +142,8 @@ void deinitCollabFilteringModel(collaborativeFiltering &collabFilteringModel);
 /* Randomly pick reviews for test and validation data set*/
 void randomlyPickReviews(collaborativeFiltering &collabFilteringModel,
 		testDataType testingDataType);
+
+/* Parse the yelp dataset*/
+void parseYelpData(vector<users> &allUsers, vector<business> &allBusiness);
 
 #endif /* COLLAB_FILTERING_H_ */

@@ -11,6 +11,7 @@
 #include <set>
 #include "collab_filtering.h"
 #include "utils.h"
+#include <cstring>
 
 /* This static counter helps in generating random seeds so that sampling of
  * review data for validation and testing purposes must be as random as
