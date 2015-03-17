@@ -276,9 +276,6 @@ void validateAndLogReviews(collaborativeFiltering &collabFilteringModel,
 			computedRating += u[userID][k] * v[businessID][k];
 		}
 
-		/* Bump up the rating by 2.5*/
-		computedRating += 2.5;
-
 		/* Now write all the pertinent data into file. */
 		fout << setw(6) << userID << ", ";
 		fout << (*allUsers)[userID].genericID << ", ";
@@ -385,9 +382,6 @@ double computeMSE(collaborativeFiltering &collabFilteringModel,
 		for (unsigned int k = 0; k < latentSpace; k++) {
 			computedRating += u[userID][k] * v[businessID][k];
 		}
-
-		/* Bump up the rating by 2.5*/
-		computedRating += 2.5;
 
 		/* Accumulate its absolute squared value*/
 		meanSquareError += (computedRating - actualRating)

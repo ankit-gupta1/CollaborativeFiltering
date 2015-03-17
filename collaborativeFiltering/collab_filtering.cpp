@@ -12,6 +12,7 @@
 #include "collab_filtering.h"
 #include "utils.h"
 #include <cstring>
+#include <random>
 
 /* This static counter helps in generating random seeds so that sampling of
  * review data for validation and testing purposes must be as random as
@@ -298,11 +299,13 @@ void initCollabFilteringModel(collaborativeFiltering &collabFilteringModel,
 		}
 	}
 
+	default_random_engine generator;
+	uniform_real_distribution<double> distribution(0, 1);
+
 	/* Randomly initialize business variables. */
 	for (unsigned int i = 0; i < (*trainBusiness).size(); i++) {
 		for (unsigned int j = 0; j < latentSpace; j++) {
-			srand(time(NULL) + (i + 1) * (j + 1) + 78 + i * j);
-			(*v)[i][j] = (double(rand() % 21) / double(20)) - 0.5;
+			(*v)[i][j] = distribution(generator);
 		}
 	}
 
@@ -401,7 +404,7 @@ void probablisticMatrixFactorization(
 				unsigned int businessID = (*trainUsers)[i].businessReviewed[j];
 
 				/* Get the corresponding rating given by user to this business. */
-				double z_ij = (*trainUsers)[i].stars[businessID] - 2.5;
+				double z_ij = (*trainUsers)[i].stars[businessID];
 
 				/* Start accumulating user features as per update rule. */
 				for (unsigned int l = 0; l < latentSpace; l++) {
@@ -436,7 +439,7 @@ void probablisticMatrixFactorization(
 				unsigned int userID = (*trainBusiness)[i].usersReviewed[j];
 
 				/* Get the corresponding rating received by business from this user. */
-				double z_ij = (*trainBusiness)[i].stars[userID] - 2.5;
+				double z_ij = (*trainBusiness)[i].stars[userID];
 
 				/* Start accumulating business features as per update rule. */
 				for (unsigned int l = 0; l < latentSpace; l++) {
