@@ -107,8 +107,8 @@ void randomlyPickReviews(collaborativeFiltering &collabFilteringModel,
 					(*trainUsers)[userID].businessReviewed[businessCount];
 
 			/* Now verify if the business to be removed from train set has been
-			 * reviewed by multiple users. If not, then this business ID cannot be
-			 * removed. */
+			 * reviewed by multiple users. If not, then this business ID cannot
+			 * be removed. */
 			if ((*trainBusiness)[businessID].usersReviewed.size() > 1) {
 
 				/* Create a new review. */
@@ -120,7 +120,8 @@ void randomlyPickReviews(collaborativeFiltering &collabFilteringModel,
 				/* Populate the business ID. */
 				newReview.bussinessId = businessID;
 
-				/* Get the rating awarded by user 'i' to business 'businessID'. */
+				/* Get the rating awarded by user 'i' to business
+				 * 'businessID'. */
 				newReview.stars = (*trainUsers)[userID].stars[businessID];
 
 				/* Push the review to the review vector. */
@@ -403,7 +404,8 @@ void probablisticMatrixFactorization(
 				/* Get the numeric businessID of the business reviewed. */
 				unsigned int businessID = (*trainUsers)[i].businessReviewed[j];
 
-				/* Get the corresponding rating given by user to this business. */
+				/* Get the corresponding rating given by user to this
+				 * business. */
 				double z_ij = (*trainUsers)[i].stars[businessID];
 
 				/* Start accumulating user features as per update rule. */
@@ -429,8 +431,9 @@ void probablisticMatrixFactorization(
 			double *temp = new double[latentSpace];
 			double den = 0.0;
 
-			/* Update using only those user ratings, which have reviewed the business.
-			 * Iterate over all the users who reviewed the current business. */
+			/* Update using only those user ratings, which have reviewed the
+			 * business. Iterate over all the users who reviewed the current
+			 * business. */
 			memset((void *) temp, 0, sizeof(double) * latentSpace);
 			for (unsigned int j = 0;
 					j < (*trainBusiness)[i].usersReviewed.size(); j++) {
@@ -438,7 +441,8 @@ void probablisticMatrixFactorization(
 				/* Get the numeric useID of the user. */
 				unsigned int userID = (*trainBusiness)[i].usersReviewed[j];
 
-				/* Get the corresponding rating received by business from this user. */
+				/* Get the corresponding rating received by business from this
+				 * user. */
 				double z_ij = (*trainBusiness)[i].stars[userID];
 
 				/* Start accumulating business features as per update rule. */
