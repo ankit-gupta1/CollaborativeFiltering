@@ -416,9 +416,7 @@ void probablisticMatrixFactorization(
 			}
 
 			/* Update user features. */
-			den = den
-					- (collabFilteringModel.lambdaU
-							* (*trainUsers)[i].businessReviewed.size());
+			den = den - collabFilteringModel.lambdaU;
 			for (unsigned int j = 0; j < latentSpace; j++) {
 				u[i][j] = temp[j] / den;
 			}
@@ -453,9 +451,7 @@ void probablisticMatrixFactorization(
 			}
 
 			/* Update business features. */
-			den = den
-					- (collabFilteringModel.lambdaV
-							* (*trainBusiness)[i].usersReviewed.size());
+			den = den - collabFilteringModel.lambdaV;
 			for (unsigned int j = 0; j < latentSpace; j++) {
 				v[i][j] = temp[j] / den;
 			}
