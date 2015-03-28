@@ -17,16 +17,6 @@
 #include "utils.h"
 #include "collab_filtering.h"
 
-/* This look up table contains the number of iterations required by each model
- * to achieve a sub-optimal root mean square error on the training data. We
- * would like to call it as the sweet spot because if we aim to over optimize
- * our model on the training data set, it badly suffers from the phenomena of
- * over-fitting. Also, these iteration caps for each model were found after
- * experimenting on fixed iterations of 25 for different feature lengths
- * ranging from 3 to 20. */
-const unsigned int sweetSpotOptIter[18] { 22, 16, 13, 12, 12, 12, 11, 11, 11,
-		10, 10, 10, 10, 9, 9, 9, 9, 9, };
-
 /* This function returns the current time in the form of underscore separated
  * time data string, which is very useful in creating new log files for each
  * run of the program. */
@@ -276,6 +266,12 @@ void validateAndLogReviews(collaborativeFiltering &collabFilteringModel,
 			computedRating += u[userID][k] * v[businessID][k];
 		}
 
+		if (computedRating > 5) {
+			computedRating = 5.0;
+		} else if (computedRating < 1) {
+			computedRating = 1.0;
+		}
+
 		/* Now write all the pertinent data into file. */
 		fout << setw(6) << userID << ", ";
 		fout << (*allUsers)[userID].genericID << ", ";
@@ -383,6 +379,12 @@ double computeMSE(collaborativeFiltering &collabFilteringModel,
 			computedRating += u[userID][k] * v[businessID][k];
 		}
 
+		if (computedRating > 5) {
+			computedRating = 5.0;
+		} else if (computedRating < 1) {
+			computedRating = 1.0;
+		}
+
 		/* Accumulate its absolute squared value*/
 		meanSquareError += (computedRating - actualRating)
 				* (computedRating - actualRating);
@@ -391,6 +393,52 @@ double computeMSE(collaborativeFiltering &collabFilteringModel,
 	/* Compute the mean square error. */
 	meanSquareError = sqrt(meanSquareError / totalReviews);
 	return meanSquareError;
+}
+
+void editInputBatchText() {
+	ofstream fout;
+
+	/* Open the input batch text file. */
+	fout.open(BATCH_INPUT_TEXT);
+
+	/* In the first line, write the number of models we are assessing. */
+	fout
+			<< (MAX_MODEL_LATENT_SPACE - MIN_MODEL_LATENT_SPACE + 1)
+					* (REGULARIZATION_STEPS + 1) * (REGULARIZATION_STEPS + 1)
+			<< endl;
+
+	double latentSpaceSize = MIN_MODEL_LATENT_SPACE;
+	double regularizationParamUsers = MIN_REGULARIZATION_PARAM;
+	double regularizationParamBusiness = MIN_REGULARIZATION_PARAM;
+	double regularizationStepSize = (log10(MAX_REGULARIZATION_PARAM)
+			- log10(MIN_REGULARIZATION_PARAM)) / REGULARIZATION_STEPS;
+
+	while (latentSpaceSize <= MAX_MODEL_LATENT_SPACE) {
+		while (regularizationParamUsers <= MAX_REGULARIZATION_PARAM) {
+			while (regularizationParamBusiness <= MAX_REGULARIZATION_PARAM) {
+				fout << latentSpaceSize << " ";
+				fout << (latentSpaceSize < 10 ? 25 : 15) << " ";
+				fout << 1 << " ";
+				fout << regularizationParamUsers << " ";
+				fout << regularizationParamBusiness << endl;
+
+				regularizationParamBusiness = pow(10,
+						log10(regularizationParamBusiness)
+								+ regularizationStepSize);
+			}
+
+			regularizationParamUsers = pow(10,
+					log10(regularizationParamUsers) + regularizationStepSize);
+			regularizationParamBusiness = MIN_REGULARIZATION_PARAM;
+		}
+
+		latentSpaceSize += LATENT_SPACE_STEP_SIZE;
+		regularizationParamUsers = MIN_REGULARIZATION_PARAM;
+		regularizationParamBusiness = MIN_REGULARIZATION_PARAM;
+	}
+
+	/* Close the output file object. */
+	fout.close();
 }
 
 /* This function is for running different collaborative filtering models in
@@ -407,29 +455,7 @@ void runPmfBatch(vector<users> &allUsers, vector<business> &allBusiness) {
 	ifstream fin;
 
 #if !FORCE_INPUT
-	/* Open the input batch text file. */
-	fout.open(BATCH_INPUT_TEXT);
-
-	/* In the first line, write the number of models we are assessing. */
-	fout << 18 * 25 << endl;
-
-	/* This is followed by mentioning the feature or latent space length, max
-	 * iterations, a boolean variable mentioning if regularization is used or
-	 * not, regularization parameter for user and business variables. */
-	for (unsigned int i = 3; i < 21; i++) {
-		for (unsigned int m = 2; m < 11; m = m + 2) {
-			for (unsigned int n = 2; n < 11; n = n + 2) {
-				fout << i << " ";
-				fout << sweetSpotOptIter[i - 3] << " ";
-				fout << 1 << " ";
-				fout << double(double(m) / double(1000000)) << " ";
-				fout << double(double(n) / double(1000000)) << endl;
-			}
-		}
-	}
-
-	/* Close the output file object. */
-	fout.close();
+	editInputBatchText();
 #endif
 
 	/* Open input batch file mentioning different models. */
@@ -586,29 +612,7 @@ void runPmfBatchOMP(vector<users> &allUsers, vector<business> &allBusiness) {
 	ifstream fin;
 
 #if !FORCE_INPUT
-	/* Open the input batch text file. */
-	fout.open(BATCH_INPUT_TEXT);
-
-	/* In the first line, write the number of models we are assessing. */
-	fout << 18 * 25 << endl;
-
-	/* This is followed by mentioning the feature or latent space length, max
-	 * iterations, a boolean variable mentioning if regularization is used or
-	 * not, regularization parameter for user and business variables. */
-	for (unsigned int i = 3; i < 21; i++) {
-		for (unsigned int m = 2; m < 11; m = m + 2) {
-			for (unsigned int n = 2; n < 11; n = n + 2) {
-				fout << i << " ";
-				fout << sweetSpotOptIter[i - 3] << " ";
-				fout << 1 << " ";
-				fout << double(double(m) / double(1000000)) << " ";
-				fout << double(double(n) / double(1000000)) << endl;
-			}
-		}
-	}
-
-	/* Close the output file object. */
-	fout.close();
+	editInputBatchText();
 #endif
 
 	/* Open input batch file mentioning different models. */
@@ -667,17 +671,16 @@ void runPmfBatchOMP(vector<users> &allUsers, vector<business> &allBusiness) {
 		/* Train the model for some fixed number of times and accumulate the
 		 * error results and log its average values. */
 
+		/* Launch as per given thread ID. */
+		cout << "Running PMF Algorithm with K = " << latentSpace[i]
+				<< " for " << maxIterations[i] << " iterations, lambda U = "
+				<< lambdaU[i] << ", lambda V = " << lambdaV[i] << endl << endl;
+
 #pragma omp parallel
 		{
 
 			/* Get the thread ID. */
 			unsigned int j = omp_get_thread_num();
-
-			/* Launch as per given thread ID. */
-			cout << "Running PMF Algorithm with K = " << latentSpace[i]
-					<< " for " << maxIterations[i] << " iterations, lambda U = "
-					<< lambdaU[i] << ", lambda V = " << lambdaV[i] << ", trial "
-					<< j + 1 << endl << endl;
 
 			/* Initialize the model. */
 			initCollabFilteringModel(collabFilteringModel[j], allUsers,

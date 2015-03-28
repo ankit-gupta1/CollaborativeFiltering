@@ -56,7 +56,25 @@ using namespace std;
 
 /* Enable this macro if you want to test custom models, otherwise 450 default
  * models will get tested. */
-#define FORCE_INPUT			1
+#define FORCE_INPUT			0
+
+/* Define the minimum latent size of model. */
+#define MIN_MODEL_LATENT_SPACE		20
+
+/* Define the maximum latent size of model. */
+#define MAX_MODEL_LATENT_SPACE		40
+
+/* Define the latent space step size. */
+#define LATENT_SPACE_STEP_SIZE		1
+
+/* Define the maximum size of regularization parameter. */
+#define MAX_REGULARIZATION_PARAM	(1e-001)
+
+/* Define the minimum size of regularization parameter. */
+#define MIN_REGULARIZATION_PARAM	(1e-004)
+
+/* Try regularization range in steps of. */
+#define REGULARIZATION_STEPS		6
 
 typedef enum {
 	LOG_USER_FEATURES = 1,
