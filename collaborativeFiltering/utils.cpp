@@ -17,12 +17,15 @@
 #include "utils.h"
 #include "collab_filtering.h"
 
-/* This function returns the current time in the form of underscore separated
- * time data string, which is very useful in creating new log files for each
- * run of the program. */
 string getCurrentTimeString() {
+
+	/* Create an instance for fetching current time. */
 	time_t rawTime;
+
+	/* Pointer to fetch the obtained time data. */
 	struct tm * timeInfo;
+
+	/* Character buffer for temporary usage. */
 	char buffer[80];
 
 	/* Initialize raw time object. */
@@ -37,11 +40,10 @@ string getCurrentTimeString() {
 	/* Copy buffer to the string object. */
 	string str(buffer);
 
+	/* Return the time string. */
 	return str;
 }
 
-/* This function returns the unique log file name for each request of output log
- * file. */
 string getLogFileName(logTypes t, unsigned int latentSpace,
 		unsigned int maxIterations) {
 
@@ -63,6 +65,7 @@ string getLogFileName(logTypes t, unsigned int latentSpace,
 
 	/* Assign log files distinct initials as per the requested log file type.*/
 	switch (t) {
+
 	case LOG_USER_FEATURES:
 		logFileName.append("US_");
 		break;
@@ -97,9 +100,13 @@ string getLogFileName(logTypes t, unsigned int latentSpace,
 	 * called. */
 	logFileName.append(getCurrentTimeString());
 
-	/* Extract strings from integers. */
+	/* Convert latent space integer to string. */
 	strLatentSpace << latentSpace;
+
+	/* Convert maximum iterations integer to string. */
 	strMaxIterations << maxIterations;
+
+	/* Convert the current thread ID integer to string. */
 	strCurrThreadID << omp_get_thread_num();
 
 	/* Avoid appending max iteration and feature space strings when log file
@@ -119,7 +126,6 @@ string getLogFileName(logTypes t, unsigned int latentSpace,
 	return logFileName;
 }
 
-/* This function is for logging feature vectors of user and business. */
 void logUserBusinessFeatures(collaborativeFiltering &collabFilteringModel) {
 
 	/* Get the user feature space. */
@@ -186,8 +192,6 @@ void logUserBusinessFeatures(collaborativeFiltering &collabFilteringModel) {
 	fout.close();
 }
 
-/* This function validates the collaborative filtering model with the original
- * review ratings. */
 void validateAndLogReviews(collaborativeFiltering &collabFilteringModel,
 		testDataType testingDataType) {
 
@@ -287,8 +291,6 @@ void validateAndLogReviews(collaborativeFiltering &collabFilteringModel,
 	fout.close();
 }
 
-/* This function logs the root mean square error per iteration. This gives us
- * pretty useful information on convergence of models. */
 void logMsePerIteration(collaborativeFiltering &collabFilteringModel) {
 
 	/* Get the feature length. */
@@ -323,8 +325,6 @@ void logMsePerIteration(collaborativeFiltering &collabFilteringModel) {
 	fout.close();
 }
 
-/* This function computes the root mean square error for a given set of
- * reviews.*/
 double computeMSE(collaborativeFiltering &collabFilteringModel,
 		testDataType testingDataType) {
 
@@ -392,10 +392,174 @@ double computeMSE(collaborativeFiltering &collabFilteringModel,
 
 	/* Compute the mean square error. */
 	meanSquareError = sqrt(meanSquareError / totalReviews);
+
 	return meanSquareError;
 }
 
 void editInputBatchText() {
+
+	/* File stream output object. */
+	ofstream fout;
+
+	/* Open the input batch text file. */
+	fout.open(BATCH_INPUT_TEXT);
+
+	/* In the first line, write the number of models we are assessing. */
+	fout << (MAX_MODEL_LATENT_SPACE - MIN_MODEL_LATENT_SPACE + 1) << endl;
+
+	double latentSpaceSize = MIN_MODEL_LATENT_SPACE;
+
+	while (latentSpaceSize <= MAX_MODEL_LATENT_SPACE) {
+
+		fout << latentSpaceSize << " ";
+		fout << (latentSpaceSize < 10 ? 25 : 15) << " " << endl;
+
+		latentSpaceSize += LATENT_SPACE_STEP_SIZE;
+	}
+
+	/* Close the output file object. */
+	fout.close();
+}
+
+void runPmfBatchOMP(vector<users> &allUsers, vector<business> &allBusiness) {
+
+	/* Switch off the dynamic thread setting. */
+	omp_set_dynamic(0);
+
+	/* Output file object. */
+	ofstream fout;
+
+	/* Input file object. */
+	ifstream fin;
+
+#if !FORCE_INPUT
+	editInputBatchText();
+#endif
+
+	/* Open input batch file mentioning different models. */
+	fin.open(BATCH_INPUT_TEXT);
+
+	/* Read number of models. */
+	unsigned int n;
+	fin >> n;
+
+	/* Read the model parameters. */
+	unsigned int *latentSpace = new unsigned int[n];
+	unsigned int *maxIterations = new unsigned int[n];
+
+	for (unsigned int i = 0; i < n; i++) {
+		fin >> latentSpace[i];
+		fin >> maxIterations[i];
+	}
+
+	fin.close();
+
+	/* Log file name. */
+	string logFileName;
+
+	/* Get the log file name. */
+	logFileName = getLogFileName(LOG_BATCH_RESULTS, 0, 0);
+
+	/* Open the log file. */
+	fout.open(logFileName.c_str());
+
+	/* Now run each of these models and test them against the validation and
+	 * test data sets. */
+	for (unsigned int i = 0; i < n; i = i + NO_OF_TRIALS) {
+
+		/* Declare the model. */
+		collaborativeFiltering collabFilteringModel[NO_OF_TRIALS];
+
+		/* Initialize the root mean square errors to 0.*/
+		double rmseTraining[NO_OF_TRIALS] = { 0.0 };
+		double rmseTest[NO_OF_TRIALS] = { 0.0 };
+
+		/* Train the model for some fixed number of times and accumulate the
+		 * error results and log its average values. */
+
+		/* Launch as per given thread ID. */
+		for (unsigned int j = 0;
+				j < ((n - i) >= NO_OF_TRIALS ? NO_OF_TRIALS : (n - i)); j++) {
+			cout << "Running PMF Algorithm with K = " << latentSpace[i + j]
+					<< " for " << maxIterations[i + j] << " iterations" << endl;
+		}
+
+		/* Set the number of threads. */
+		omp_set_num_threads((n - i) >= NO_OF_TRIALS ? NO_OF_TRIALS : (n - i));
+
+#pragma omp parallel
+		{
+
+			/* Get the thread ID. */
+			unsigned int j = omp_get_thread_num();
+
+			/* Initialize the model. */
+			initCollabFilteringModel(collabFilteringModel[j], allUsers,
+					allBusiness, latentSpace[i + j], maxIterations[i + j], 0, 0,
+					true);
+
+			/* Train the model. */
+			probablisticMatrixFactorization(collabFilteringModel[j]);
+
+#if LOG_FEATURES
+			cout << "Logging the computed features." << endl;
+
+			/* Save the estimated user and business data. */
+			logUserBusinessFeatures(collabFilteringModel[j]);
+
+			/* Validate the computed features with existing reviews on training
+			 * data. */
+			cout << "Validating training data prediction." << endl;
+			validateAndLogReviews(collabFilteringModel[j], TRAINING_DATA);
+
+			/* Validate the computed features with existing reviews on testing
+			 * data. */
+			cout << "Validating training data prediction." << endl;
+			validateAndLogReviews(collabFilteringModel[j], TESTING_DATA);
+#endif
+
+#if LOG_MSE
+			cout << "Logging the mean square error after every iteration."
+			<< endl;
+
+			/* Log the mean square error. */
+			logMsePerIteration(collabFilteringModel[j]);
+#endif
+
+			/* Compute the error on training data set. */
+			rmseTraining[j] = computeMSE(collabFilteringModel[j],
+					TRAINING_DATA);
+
+			/* Compute the error on testing data set. */
+			rmseTest[j] = computeMSE(collabFilteringModel[j], TESTING_DATA);
+
+			/* De-initialize the model. */
+			deinitCollabFilteringModel(collabFilteringModel[j]);
+		}
+
+		for (unsigned int j = 0;
+				j < ((n - i) >= NO_OF_TRIALS ? NO_OF_TRIALS : (n - i)); j++) {
+			/* Log the findings along with the model specifications. */
+			fout << "Model " << setw(7) << i + j + 1 << ", ";
+			fout << setw(13) << setprecision(5) << latentSpace[i + j] << ", ";
+			fout << setw(13) << setprecision(5) << maxIterations[i + j] << ", ";
+			fout << setw(13) << setprecision(5) << rmseTraining[j] << ", ";
+			fout << setw(13) << setprecision(5) << rmseTest[j] << ", ";
+			fout << endl;
+		}
+	}
+
+	/* Close the log file.*/
+	fout.close();
+
+	/* Switch on the dynamic thread setting. */
+	omp_set_dynamic(1);
+
+	delete latentSpace;
+	delete maxIterations;
+}
+
+void editInputBatchTextForGradientDescent() {
 	ofstream fout;
 
 	/* Open the input batch text file. */
@@ -417,8 +581,7 @@ void editInputBatchText() {
 		while (regularizationParamUsers <= MAX_REGULARIZATION_PARAM) {
 			while (regularizationParamBusiness <= MAX_REGULARIZATION_PARAM) {
 				fout << latentSpaceSize << " ";
-				fout << (latentSpaceSize < 10 ? 25 : 15) << " ";
-				fout << 1 << " ";
+				fout << 1000 << " ";
 				fout << regularizationParamUsers << " ";
 				fout << regularizationParamBusiness << endl;
 
@@ -441,163 +604,8 @@ void editInputBatchText() {
 	fout.close();
 }
 
-/* This function is for running different collaborative filtering models in
- * batch mode. This is very useful for cross validating and fine tuning the
- * collaborative filtering model. In our implementation, the basic tuning
- * parameters of filtering model are feature space length, the number of
- * iterations required for model to attain a sub-optimal value and the
- * regularization parameters for feature matrices of user and business. */
-void runPmfBatch(vector<users> &allUsers, vector<business> &allBusiness) {
-	/* Output file object. */
-	ofstream fout;
-
-	/* Input file object. */
-	ifstream fin;
-
-#if !FORCE_INPUT
-	editInputBatchText();
-#endif
-
-	/* Open input batch file mentioning different models. */
-	fin.open(BATCH_INPUT_TEXT);
-
-	/* Read number of models. */
-	unsigned int n;
-	fin >> n;
-
-	/* Read the model parameters. */
-	unsigned int *latentSpace = new unsigned int[n];
-	unsigned int *maxIterations = new unsigned int[n];
-	unsigned int *isRegEnabled = new unsigned int[n];
-	double *lambdaU = new double[n];
-	double *lambdaV = new double[n];
-
-	for (unsigned int i = 0; i < n; i++) {
-		fin >> latentSpace[i];
-		fin >> maxIterations[i];
-		fin >> isRegEnabled[i];
-		if (isRegEnabled[i] == 1) {
-			fin >> lambdaU[i];
-			fin >> lambdaV[i];
-		} else {
-			lambdaU[i] = 0.0;
-			lambdaV[i] = 0.0;
-		}
-	}
-
-	fin.close();
-
-	/* Log file name. */
-	string logFileName;
-
-	/* Get the log file name. */
-	logFileName = getLogFileName(LOG_BATCH_RESULTS, 0, 0);
-
-	/* Open the log file. */
-	fout.open(logFileName.c_str());
-
-	/* Now run each of these models and test them against the validation and
-	 * test data sets. */
-	for (unsigned int i = 0; i < n; i++) {
-
-		/* Declare the model. */
-		collaborativeFiltering collabFilteringModel;
-
-		/* Initialize the root mean square errors to 0.*/
-		double rmseTraining = 0.0;
-		double rmseValidation = 0.0;
-		double rmseTest = 0.0;
-
-		/* Train the model for some fixed number of times and accumulate the
-		 * error results and log its average values. */
-		for (unsigned int j = 0; j < NO_OF_TRIALS; j++) {
-
-			cout << "Running PMF Algorithm with K = " << latentSpace[i]
-					<< " for " << maxIterations[i] << " iterations, lambda U = "
-					<< lambdaU[i] << ", lambda V = " << lambdaV[i] << ", trial "
-					<< j + 1 << endl;
-
-			/* Initialize the model. */
-			initCollabFilteringModel(collabFilteringModel, allUsers,
-					allBusiness, latentSpace[i], maxIterations[i], lambdaU[i],
-					lambdaV[i], (isRegEnabled[i] == 1) ? true : false);
-
-			/* Train the model. */
-			probablisticMatrixFactorization(collabFilteringModel);
-
-#if LOG_FEATURES
-			cout << "Logging the computed features." << endl;
-
-			/* Save the estimated user and business data. */
-			logUserBusinessFeatures(collabFilteringModel);
-
-			cout << "Validating the computed features." << endl;
-
-			/* Validate the computed features with existing reviews on training
-			 * data. */
-			validateAndLogReviews(collabFilteringModel, TRAINING_DATA);
-
-			/* Validate the computed features with existing reviews on
-			 * validation data. */
-			validateAndLogReviews(collabFilteringModel, VALIDATION_DATA);
-
-			/* Validate the computed features with existing reviews on testing
-			 * data. */
-			validateAndLogReviews(collabFilteringModel, TESTING_DATA);
-#endif
-
-#if LOG_MSE
-			cout << "Logging the mean square error after every iteration."
-			<< endl;
-
-			/* Log the mean square error. */
-			logMsePerIteration(collabFilteringModel);
-#endif
-
-			/* Compute the error on training data set. */
-			rmseTraining += computeMSE(collabFilteringModel, TRAINING_DATA);
-
-			/* Compute the error on validation data set. */
-			rmseValidation += computeMSE(collabFilteringModel, VALIDATION_DATA);
-
-			/* Compute the error on testing data set. */
-			rmseTest += computeMSE(collabFilteringModel, TESTING_DATA);
-
-			/* De-initialize the model. */
-			deinitCollabFilteringModel(collabFilteringModel);
-		}
-
-		/* Log the findings along with the model specifications. */
-		fout << "Model " << setw(7) << i + 1 << ", ";
-		fout << setw(13) << setprecision(5) << latentSpace[i] << ", ";
-		fout << setw(13) << setprecision(5) << maxIterations[i] << ", ";
-		fout << setw(13) << setprecision(5) << lambdaU[i] << ", ";
-		fout << setw(13) << setprecision(5) << lambdaV[i] << ", ";
-		fout << setw(13) << setprecision(5) << rmseTraining / NO_OF_TRIALS
-				<< ", ";
-		fout << setw(13) << setprecision(5) << rmseValidation / NO_OF_TRIALS
-				<< ", ";
-		fout << setw(13) << setprecision(5) << rmseTest / NO_OF_TRIALS << ", ";
-		fout << endl;
-	}
-
-	/* Close the log file.*/
-	fout.close();
-
-	delete latentSpace;
-	delete maxIterations;
-	delete isRegEnabled;
-	delete lambdaU;
-	delete lambdaV;
-}
-
-/* This function is for running different collaborative filtering models in
- * batch mode. This is very useful for cross validating and fine tuning the
- * collaborative filtering model. In our implementation, the basic tuning
- * parameters of filtering model are feature space length, the number of
- * iterations required for model to attain a sub-optimal value and the
- * regularization parameters for feature matrices of user and business. */
-void runPmfBatchOMP(vector<users> &allUsers, vector<business> &allBusiness) {
+void runPmfBatchGradientDescentOMP(vector<users> &allUsers,
+		vector<business> &allBusiness) {
 
 	/* Switch off the dynamic thread setting. */
 	omp_set_dynamic(0);
@@ -612,7 +620,7 @@ void runPmfBatchOMP(vector<users> &allUsers, vector<business> &allBusiness) {
 	ifstream fin;
 
 #if !FORCE_INPUT
-	editInputBatchText();
+	editInputBatchTextForGradientDescent();
 #endif
 
 	/* Open input batch file mentioning different models. */
@@ -625,21 +633,14 @@ void runPmfBatchOMP(vector<users> &allUsers, vector<business> &allBusiness) {
 	/* Read the model parameters. */
 	unsigned int *latentSpace = new unsigned int[n];
 	unsigned int *maxIterations = new unsigned int[n];
-	unsigned int *isRegEnabled = new unsigned int[n];
 	double *lambdaU = new double[n];
 	double *lambdaV = new double[n];
 
 	for (unsigned int i = 0; i < n; i++) {
 		fin >> latentSpace[i];
 		fin >> maxIterations[i];
-		fin >> isRegEnabled[i];
-		if (isRegEnabled[i] == 1) {
-			fin >> lambdaU[i];
-			fin >> lambdaV[i];
-		} else {
-			lambdaU[i] = 0.0;
-			lambdaV[i] = 0.0;
-		}
+		fin >> lambdaU[i];
+		fin >> lambdaV[i];
 	}
 
 	fin.close();
@@ -672,9 +673,20 @@ void runPmfBatchOMP(vector<users> &allUsers, vector<business> &allBusiness) {
 		 * error results and log its average values. */
 
 		/* Launch as per given thread ID. */
-		cout << "Running PMF Algorithm with K = " << latentSpace[i]
-				<< " for " << maxIterations[i] << " iterations, lambda U = "
-				<< lambdaU[i] << ", lambda V = " << lambdaV[i] << endl << endl;
+		cout << "Running PMF Algorithm with K = " << latentSpace[i] << " for "
+				<< maxIterations[i] << " iterations, lambda U = " << lambdaU[i]
+				<< ", lambda V = " << lambdaV[i] << endl << endl;
+
+		collaborativeFiltering collabFilteringTest;
+		/* Initialize the model. */
+		initCollabFilteringModel(collabFilteringTest, allUsers, allBusiness,
+				latentSpace[0], maxIterations[0], lambdaU[0], lambdaV[0], true);
+
+		vector<review> testReviews = collabFilteringTest.testReviews;
+		vector<users> trainUsers = collabFilteringTest.trainUsers;
+		vector<business> trainBusiness = collabFilteringTest.trainBusiness;
+
+		deinitCollabFilteringModel(collabFilteringTest);
 
 #pragma omp parallel
 		{
@@ -683,12 +695,14 @@ void runPmfBatchOMP(vector<users> &allUsers, vector<business> &allBusiness) {
 			unsigned int j = omp_get_thread_num();
 
 			/* Initialize the model. */
-			initCollabFilteringModel(collabFilteringModel[j], allUsers,
-					allBusiness, latentSpace[i], maxIterations[i], lambdaU[i],
-					lambdaV[i], (isRegEnabled[i] == 1) ? true : false);
+			collabFilteringModel[j].testReviews = testReviews;
+			initCollabFilteringModel(collabFilteringModel[j], trainUsers,
+					trainBusiness, latentSpace[i], maxIterations[i], lambdaU[i],
+					lambdaV[i], false);
 
 			/* Train the model. */
-			probablisticMatrixFactorization(collabFilteringModel[j]);
+			probablisticMatrixFactorizationGradientDescent(
+					collabFilteringModel[j]);
 
 #if LOG_FEATURES
 			cout << "Logging the computed features." << endl;
@@ -763,7 +777,6 @@ void runPmfBatchOMP(vector<users> &allUsers, vector<business> &allBusiness) {
 
 	delete latentSpace;
 	delete maxIterations;
-	delete isRegEnabled;
 	delete lambdaU;
 	delete lambdaV;
 }

@@ -13,11 +13,8 @@
 #include "utils.h"
 #include <cstring>
 #include <random>
-
-/* This static counter helps in generating random seeds so that sampling of
- * review data for validation and testing purposes must be as random as
- * possible. This further helps in generalization of model. */
-static int counter = 1;
+#include <limits>
+#include <cstddef>
 
 void randomlyPickReviews(collaborativeFiltering &collabFilteringModel,
 		testDataType testingDataType) {
@@ -53,7 +50,9 @@ void randomlyPickReviews(collaborativeFiltering &collabFilteringModel,
 	}
 
 	/* Now randomize the access locations. */
-	srand(time(NULL) + counter++ * 7074);
+	default_random_engine generator;
+	uniform_int_distribution<unsigned int> distribution(1, 10099777);
+	srand(time(NULL) + distribution(generator));
 	random_shuffle(accessLocation.begin(), accessLocation.end());
 
 	/* Iterate through all the users and verify if some of the reviews
@@ -91,7 +90,7 @@ void randomlyPickReviews(collaborativeFiltering &collabFilteringModel,
 		/* Randomly shuffle the list of businesses reviewed. Shuffling here
 		 * will do no harm and will help in picking as random reviews as
 		 * possible. */
-		srand(time(NULL) + counter++ * 19002);
+		srand(time(NULL) + distribution(generator));
 		random_shuffle((*trainUsers)[userID].businessReviewed.begin(),
 				(*trainUsers)[userID].businessReviewed.end());
 
@@ -186,7 +185,7 @@ void randomlyPickReviews(collaborativeFiltering &collabFilteringModel,
 void initCollabFilteringModel(collaborativeFiltering &collabFilteringModel,
 		vector<users> &allUsers, vector<business> &allBusiness,
 		unsigned int latentSpace, unsigned int maxIterations, double lambdaU,
-		double lambdaV, bool isRegEnabled) {
+		double lambdaV, bool isTest) {
 
 	/* Get the user feature space. */
 	double ***u = &(collabFilteringModel.u);
@@ -212,19 +211,11 @@ void initCollabFilteringModel(collaborativeFiltering &collabFilteringModel,
 	collabFilteringModel.allUsers = &(allUsers);
 	collabFilteringModel.allBusiness = &(allBusiness);
 
-	/* If regularization is enabled then we have to create a
-	 * validation and test set. */
-	if (isRegEnabled) {
-
-		/* Pick the validation data set. */
-		randomlyPickReviews(collabFilteringModel, VALIDATION_DATA);
-
-		/* Pick the test data set. */
+	/* Pick the validation data set. */
+	if (isTest == true) {
 		randomlyPickReviews(collabFilteringModel, TESTING_DATA);
 	} else {
-
-		/* Pick the test data set. */
-		randomlyPickReviews(collabFilteringModel, TESTING_DATA);
+		randomlyPickReviews(collabFilteringModel, VALIDATION_DATA);
 	}
 
 	/* Populate training reviews of whatever left after picking
@@ -256,11 +247,11 @@ void initCollabFilteringModel(collaborativeFiltering &collabFilteringModel,
 	}
 
 #if 0
-	cout << "Number of training data points "
-	<< collabFilteringModel.trainingReviews.size() << endl;
-	cout << "Number of test data points "
-	<< collabFilteringModel.testReviews.size() << endl;
-	if (isRegEnabled) {
+	if (isTest) {
+		cout << "Number of training data points "
+		<< collabFilteringModel.trainingReviews.size() << endl;
+		cout << "Number of test data points "
+		<< collabFilteringModel.testReviews.size() << endl;
 		cout << "Number of validation data points "
 		<< collabFilteringModel.validationReviews.size() << endl;
 	}
@@ -278,9 +269,6 @@ void initCollabFilteringModel(collaborativeFiltering &collabFilteringModel,
 	/* Set the regularization parameter for businesses. */
 	collabFilteringModel.lambdaV = lambdaV;
 
-	/* Set the regularization enabled flag. */
-	collabFilteringModel.isRegEnabled = isRegEnabled;
-
 	/* Now allocate memory to the user feature vector. */
 	*u = new double*[(*trainUsers).size()];
 	for (unsigned int i = 0; i < (*trainUsers).size(); i++) {
@@ -293,15 +281,15 @@ void initCollabFilteringModel(collaborativeFiltering &collabFilteringModel,
 		(*v)[i] = new double[latentSpace];
 	}
 
+	default_random_engine generator;
+	uniform_real_distribution<double> distribution(0.01, 1.0);
+
 	/* Initialize user variables to zero. */
 	for (unsigned int i = 0; i < (*trainUsers).size(); i++) {
 		for (unsigned int j = 0; j < latentSpace; j++) {
-			(*u)[i][j] = 0;
+			(*u)[i][j] = distribution(generator);
 		}
 	}
-
-	default_random_engine generator;
-	uniform_real_distribution<double> distribution(0, 1);
 
 	/* Randomly initialize business variables. */
 	for (unsigned int i = 0; i < (*trainBusiness).size(); i++) {
@@ -416,7 +404,7 @@ void probablisticMatrixFactorization(
 			}
 
 			/* Update user features. */
-			den = den - collabFilteringModel.lambdaU;
+			den = den == 0 ? 1 : den;
 			for (unsigned int j = 0; j < latentSpace; j++) {
 				u[i][j] = temp[j] / den;
 			}
@@ -451,7 +439,7 @@ void probablisticMatrixFactorization(
 			}
 
 			/* Update business features. */
-			den = den - collabFilteringModel.lambdaV;
+			den = den == 0 ? 1 : den;
 			for (unsigned int j = 0; j < latentSpace; j++) {
 				v[i][j] = temp[j] / den;
 			}
@@ -461,13 +449,249 @@ void probablisticMatrixFactorization(
 
 #if LOG_MSE
 		/* Compute the mean square error per iteration. */
-		collabFilteringModel.msePerIteration[k] =
-		computeMSE(collabFilteringModel, TRAINING_DATA);
+		collabFilteringModel.msePerIteration[k] = computeMSE(
+				collabFilteringModel, TRAINING_DATA);
 #endif
 	}
 }
 
-inline double sigmoid(double x) {
-	return 1 / (1 + exp(-x));
-}
+void probablisticMatrixFactorizationGradientDescent(
+		collaborativeFiltering &collabFilteringModel) {
 
+	/* Use a local pointer to access the training users. */
+	vector<users> *trainUsers = &(collabFilteringModel.trainUsers);
+
+	/* Use a local pointer to access the training businesses. */
+	vector<business> *trainBusiness = &(collabFilteringModel.trainBusiness);
+
+	/* Get the user feature space. */
+	double **u = collabFilteringModel.u;
+
+	/* Get the business feature space. */
+	double **v = collabFilteringModel.v;
+
+	/* Get the total number of businesses. */
+	unsigned int totalBusiness = collabFilteringModel.trainBusiness.size();
+
+	/* Get the total number of users. */
+	unsigned int totalUsers = collabFilteringModel.trainUsers.size();
+
+	/* Get the feature length. */
+	unsigned int latentSpace = collabFilteringModel.latentSpace;
+
+	/* Get the maximum iterations. */
+	unsigned int maxIterations = collabFilteringModel.maxIterations;
+
+	/* Learning parameter. */
+	double alpha = 2.0;
+
+	/* Create temporary space for storing gradients of user features. */
+	double **gradU;
+
+	/* Allocate memory to 2D array. */
+	gradU = new double*[totalUsers];
+
+	for (unsigned int i = 0; i < totalUsers; i++) {
+		gradU[i] = new double[latentSpace];
+	}
+
+	/* Create temporary space for storing gradients of business features. */
+	double **gradV;
+
+	/* Allocate memory to 2D array. */
+	gradV = new double*[totalBusiness];
+
+	for (unsigned int j = 0; j < totalBusiness; j++) {
+		gradV[j] = new double[latentSpace];
+	}
+
+	/* To keep track of difference of RMSE values between current and previous
+	 * iteration. */
+	double delta = std::numeric_limits<double>::max();
+
+	/* To keep track of previous */
+	double prev_delta = std::numeric_limits<double>::max();
+
+	/* Apply gradient descent algorithm for given iterations. */
+	for (unsigned int k = 0; k < maxIterations && delta > 0; k++) {
+
+		/* First update the feature values of all the users. */
+		for (unsigned int i = 0; i < totalUsers; i++) {
+
+			/* This is for holding common rating difference term. */
+			double *ratingTermDiff =
+					new double[(*trainUsers)[i].businessReviewed.size()];
+
+			/* Evaluate that common rating difference term. */
+			for (unsigned int j = 0;
+					j < (*trainUsers)[i].businessReviewed.size(); j++) {
+
+				/* Fetch the business ID. */
+				unsigned int businessID = (*trainUsers)[i].businessReviewed[j];
+
+				/* Get the rating given by user i to current business. */
+				double rating_ij = (*trainUsers)[i].stars[businessID];
+
+				/* Now evaluate the rating difference between calculated
+				 * empirical rating and the actual one. */
+				for (unsigned int l = 0; l < latentSpace; l++) {
+
+					/* Accumulate the dot product. */
+					rating_ij -= u[i][l] * v[businessID][l];
+				}
+
+				/* Reverse the signs and store it. */
+				ratingTermDiff[j] = rating_ij;
+			}
+
+			/* Now update each u[i][l] one by one. */
+			for (unsigned int l = 0; l < latentSpace; l++) {
+
+				/* The rating term in gradient descent algorithm. */
+				double ratingTerm = 0.0;
+
+				/* Evaluate the rating term by iterating over all the business
+				 * that particular user has reviewed. */
+				for (unsigned int j = 0;
+						j < (*trainUsers)[i].businessReviewed.size(); j++) {
+
+					/* Fetch the business ID. */
+					unsigned int businessID =
+							(*trainUsers)[i].businessReviewed[j];
+
+					/* Multiply the rating difference with current feature. */
+					ratingTerm += ratingTermDiff[j] * (-v[businessID][l]);
+				}
+
+				/* Store the gradient of this user feature. */
+				gradU[i][l] = -(ratingTerm
+						+ (collabFilteringModel.lambdaU * u[i][l]));
+			}
+
+			/* Free up the allocated memory. */
+			delete ratingTermDiff;
+		}
+
+		/* Secondly update the feature values of all the businesses. */
+		for (unsigned int j = 0; j < totalBusiness; j++) {
+
+			/* This is for holding common rating difference term. */
+			double *ratingTermDiff =
+					new double[(*trainBusiness)[j].usersReviewed.size()];
+
+			/* Evaluate that common rating difference term. */
+			for (unsigned int i = 0;
+					i < (*trainBusiness)[j].usersReviewed.size(); i++) {
+
+				/* Fetch the used ID. */
+				unsigned int userID = (*trainBusiness)[j].usersReviewed[i];
+
+				/* Get the rating given to business j by this user. */
+				double rating_ij = (*trainBusiness)[j].stars[userID];
+
+				/* Now evaluate the rating difference between calculated
+				 * empirical rating and the actual one. */
+				for (unsigned int l = 0; l < latentSpace; l++) {
+
+					/* Accumulate the dot product. */
+					rating_ij -= u[userID][l] * v[j][l];
+				}
+
+				/* Reverse the signs and store it. */
+				ratingTermDiff[i] = rating_ij;
+			}
+
+			/* Now update each v[j][l] one by one. */
+			for (unsigned int l = 0; l < latentSpace; l++) {
+
+				/* The rating term in gradient descent algorithm. */
+				double ratingTerm = 0.0;
+
+				/* Evaluate the rating term by iterating over all the users
+				 * who have reviewed this business. */
+				for (unsigned int i = 0;
+						i < (*trainBusiness)[j].usersReviewed.size(); i++) {
+
+					/* Fetch the used ID. */
+					unsigned int userID = (*trainBusiness)[j].usersReviewed[i];
+
+					/* Multiply the rating difference with current feature. */
+					ratingTerm += ratingTermDiff[i] * (-u[userID][l]);
+				}
+
+				/* Store the gradient of this business feature. */
+				gradV[j][l] = -(ratingTerm
+						+ (collabFilteringModel.lambdaV * v[j][l]));
+			}
+
+			/* Free up the allocated memory. */
+			delete ratingTermDiff;
+		}
+
+		/* Evaluate the frobenius norm of user feature matrix. */
+		double norm = 0.0;
+		for (unsigned int i = 0; i < totalUsers; i++) {
+			for (unsigned int l = 0; l < latentSpace; l++) {
+				norm += (gradU[i][l] * gradU[i][l]);
+			}
+		}
+
+		/* Evaluate the frobenius norm of business feature matrix. */
+		for (unsigned int j = 0; j < totalBusiness; j++) {
+			for (unsigned int l = 0; l < latentSpace; l++) {
+				norm += (gradV[j][l] * gradV[j][l]);
+			}
+		}
+
+		norm = sqrt(norm);
+
+		for (unsigned int i = 0; i < totalUsers; i++) {
+			for (unsigned int l = 0; l < latentSpace; l++) {
+
+				/* Normalize the gradient. */
+				gradU[i][l] = gradU[i][l] / norm;
+
+				/* Apply gradient descent algorithm. */
+				u[i][l] = u[i][l] + (alpha * gradU[i][l]);
+			}
+		}
+
+		for (unsigned int j = 0; j < totalBusiness; j++) {
+			for (unsigned int l = 0; l < latentSpace; l++) {
+
+				/* Normalize the gradient. */
+				gradV[j][l] = gradV[j][l] / norm;
+
+				/* Apply gradient descent algorithm. */
+				v[j][l] = v[j][l] + (alpha * gradV[j][l]);
+			}
+		}
+
+#if LOG_MSE
+		/* Compute the mean square error per iteration. */
+		collabFilteringModel.msePerIteration[k] = computeMSE(
+				collabFilteringModel, TRAINING_DATA);
+#endif
+
+		/* Compute the validation error. */
+		double valErr = computeMSE(collabFilteringModel, VALIDATION_DATA);
+
+		/* Update RMSE tracker variables. */
+		delta = prev_delta - valErr;
+		prev_delta = valErr;
+	}
+
+	/* Free up the memory allocated for gradients of user features. */
+	for (unsigned int i = 0; i < totalUsers; i++) {
+		delete gradU[i];
+	}
+
+	delete gradU;
+
+	/* Free up the memory allocated for gradients of business features. */
+	for (unsigned int j = 0; j < totalBusiness; j++) {
+		delete gradV[j];
+	}
+
+	delete gradV;
+}

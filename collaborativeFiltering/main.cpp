@@ -23,15 +23,29 @@ int main() {
 	vector<business> allBusiness;
 
 #if YELP
+
 	/* Parse Yelp data set. */
 	parseYelpData(allUsers, allBusiness);
+
 #else
+
 	/* Parse Netflix data set. */
 	parseNetflixData(allUsers, allBusiness);
+
 #endif
 
 	/* Perform collaborative filtering using PMF. */
+#if USE_GRADIENT_DESCENT
+
+	/* Train models using gradient descent algorithm. */
+	runPmfBatchGradientDescentOMP(allUsers, allBusiness);
+
+#else
+
+	/* Train models using multiplicative update rule algorithm. */
 	runPmfBatchOMP(allUsers, allBusiness);
+
+#endif
 
 	return 0;
 }

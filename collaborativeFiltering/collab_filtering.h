@@ -107,9 +107,6 @@ struct collaborativeFiltering {
 
 	/* Mean equare error of the collaborative filtering model after convergence. */
 	double meanSqaureError;
-
-	/* Are we using regularization. */
-	bool isRegEnabled;
 };
 
 /* Parses the users JSON object. */
@@ -126,15 +123,19 @@ void parseReview(vector<users> &allUsers, vector<business> &allBusiness,
 
 void parseNetflixData(vector<users> &allUsers, vector<business> &allBusiness);
 
-/* An implementation of probablistic matrix factorization algorithm.*/
+/* An implementation of probabilistic matrix factorization algorithm.*/
 void probablisticMatrixFactorization(
+		collaborativeFiltering &collabFilteringModel);
+
+/* An implementation of PMF algorithm using gradient descent. */
+void probablisticMatrixFactorizationGradientDescent(
 		collaborativeFiltering &collabFilteringModel);
 
 /* Initialize the collaborative filtering model. */
 void initCollabFilteringModel(collaborativeFiltering &collabFilteringModel,
 		vector<users> &allUsers, vector<business> &allBusiness,
 		unsigned int latentSpace, unsigned int maxIterations, double lambdaU,
-		double lambdaV, bool isRegEnabled);
+		double lambdaV, bool isTest);
 
 /* De-initialize the collaborative filtering model. */
 void deinitCollabFilteringModel(collaborativeFiltering &collabFilteringModel);
