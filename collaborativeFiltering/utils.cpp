@@ -465,27 +465,27 @@ void runPmfBatchOMP(vector<users> &allUsers, vector<business> &allBusiness) {
 
 	/* Now run each of these models and test them against the validation and
 	 * test data sets. */
-	for (unsigned int i = 0; i < n; i = i + NO_OF_TRIALS) {
+	for (unsigned int i = 0; i < n; i = i + NO_OF_THREADS) {
 
 		/* Declare the model. */
-		collaborativeFiltering collabFilteringModel[NO_OF_TRIALS];
+		collaborativeFiltering collabFilteringModel[NO_OF_THREADS];
 
 		/* Initialize the root mean square errors to 0.*/
-		double rmseTraining[NO_OF_TRIALS] = { 0.0 };
-		double rmseTest[NO_OF_TRIALS] = { 0.0 };
+		double rmseTraining[NO_OF_THREADS] = { 0.0 };
+		double rmseTest[NO_OF_THREADS] = { 0.0 };
 
 		/* Train the model for some fixed number of times and accumulate the
 		 * error results and log its average values. */
 
 		/* Launch as per given thread ID. */
 		for (unsigned int j = 0;
-				j < ((n - i) >= NO_OF_TRIALS ? NO_OF_TRIALS : (n - i)); j++) {
+				j < ((n - i) >= NO_OF_THREADS ? NO_OF_THREADS : (n - i)); j++) {
 			cout << "Running PMF Algorithm with K = " << latentSpace[i + j]
 					<< " for " << maxIterations[i + j] << " iterations" << endl;
 		}
 
 		/* Set the number of threads. */
-		omp_set_num_threads((n - i) >= NO_OF_TRIALS ? NO_OF_TRIALS : (n - i));
+		omp_set_num_threads((n - i) >= NO_OF_THREADS ? NO_OF_THREADS : (n - i));
 
 #pragma omp parallel
 		{
@@ -538,7 +538,7 @@ void runPmfBatchOMP(vector<users> &allUsers, vector<business> &allBusiness) {
 		}
 
 		for (unsigned int j = 0;
-				j < ((n - i) >= NO_OF_TRIALS ? NO_OF_TRIALS : (n - i)); j++) {
+				j < ((n - i) >= NO_OF_THREADS ? NO_OF_THREADS : (n - i)); j++) {
 			/* Log the findings along with the model specifications. */
 			fout << "Model " << setw(7) << i + j + 1 << ", ";
 			fout << setw(13) << setprecision(5) << latentSpace[i + j] << ", ";
@@ -571,12 +571,21 @@ void editInputBatchTextForGradientDescent() {
 					* (REGULARIZATION_STEPS + 1) * (REGULARIZATION_STEPS + 1)
 			<< endl;
 
+	/* Start with minimum latent space size of model. */
 	double latentSpaceSize = MIN_MODEL_LATENT_SPACE;
+
+	/* Start with minimum value of regularization parameter. */
 	double regularizationParamUsers = MIN_REGULARIZATION_PARAM;
 	double regularizationParamBusiness = MIN_REGULARIZATION_PARAM;
+
+	/* Determine the step size of regularization parameters in log linear
+	 * manner. */
 	double regularizationStepSize = (log10(MAX_REGULARIZATION_PARAM)
 			- log10(MIN_REGULARIZATION_PARAM)) / REGULARIZATION_STEPS;
 
+	/* Now generate different model hyper parameters by covering all the models
+	 * and combinations of different regularization parameters of users and
+	 * business. */
 	while (latentSpaceSize <= MAX_MODEL_LATENT_SPACE) {
 		while (regularizationParamUsers <= MAX_REGULARIZATION_PARAM) {
 			while (regularizationParamBusiness <= MAX_REGULARIZATION_PARAM) {

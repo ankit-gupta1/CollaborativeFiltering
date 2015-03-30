@@ -48,15 +48,27 @@ using namespace std;
 /* For windows machine, as maximum CPU cores are 4 only. */
 #define NO_OF_TRIALS				4
 
+/* When not using gradient descent algorithm, this will ensure parallel
+ * training of up to NO_OF_THREADS models. */
+#define NO_OF_THREADS				4
+
 #elif __linux__ && YELP
 
 /* For Linux server TESSERACT, which has maximum of 8 CPU cores. */
 #define NO_OF_TRIALS				8
 
+/* When not using gradient descent algorithm, this will ensure parallel
+ * training of up to NO_OF_THREADS models. */
+#define NO_OF_THREADS				8
+
 #elif __linux__ && !YELP
 
 /* However for NETFLIX data set, use only 4 CPU cores. */
 #define NO_OF_TRIALS				4
+
+/* When not using gradient descent algorithm, this will ensure parallel
+ * training of up to NO_OF_THREADS models. */
+#define NO_OF_THREADS				4
 
 #endif
 
