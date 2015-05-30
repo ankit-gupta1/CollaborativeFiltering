@@ -15,6 +15,7 @@
 #include <random>
 #include <limits>
 #include <cstddef>
+#include <omp.h>
 
 void randomlyPickReviews(collaborativeFiltering &collabFilteringModel,
 		testDataType testingDataType) {
@@ -679,6 +680,10 @@ void probablisticMatrixFactorizationGradientDescent(
 		/* Update RMSE tracker variables. */
 		delta = prev_delta - valErr;
 		prev_delta = valErr;
+
+		if (omp_get_num_threads() == 1) {
+			cout << "Completed iteration " << k + 1 << endl;
+		}
 	}
 
 	/* Free up the memory allocated for gradients of user features. */

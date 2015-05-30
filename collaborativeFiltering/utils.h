@@ -15,19 +15,19 @@
 using namespace std;
 
 /* Directory location of log dumps. */
-#define OP_FILENAME_PRE		"../../dump/"
+#define OP_FILENAME_PRE		"../dump/"
 
 /* File extension of dump files. */
 #define OP_FILENAME_EXT		".txt"
 
 /* Filename of user data set. */
-#define USER_DATASET		"../../yelp_dataset_challenge_academic_dataset/yelp_academic_dataset_user.json"
+#define USER_DATASET		"../yelp_dataset_challenge_academic_dataset/yelp_academic_dataset_user.json"
 
 /* Filename of business data set. */
-#define BUSINESS_DATASET	"../../yelp_dataset_challenge_academic_dataset/yelp_academic_dataset_business.json"
+#define BUSINESS_DATASET	"../yelp_dataset_challenge_academic_dataset/yelp_academic_dataset_business.json"
 
 /* Filename of review data. */
-#define REVIEW_DATASET		"../../yelp_dataset_challenge_academic_dataset/yelp_academic_dataset_review.json"
+#define REVIEW_DATASET		"../yelp_dataset_challenge_academic_dataset/yelp_academic_dataset_review.json"
 
 /* Input batch file for running simulation. */
 #define BATCH_INPUT_TEXT	"input.txt"
@@ -55,11 +55,11 @@ using namespace std;
 #elif __linux__ && YELP
 
 /* For Linux server TESSERACT, which has maximum of 8 CPU cores. */
-#define NO_OF_TRIALS				8
+#define NO_OF_TRIALS				1
 
 /* When not using gradient descent algorithm, this will ensure parallel
  * training of up to NO_OF_THREADS models. */
-#define NO_OF_THREADS				8
+#define NO_OF_THREADS				1
 
 #elif __linux__ && !YELP
 
@@ -97,7 +97,7 @@ using namespace std;
 
 /* Enable this macro if you want to test custom models, otherwise 450 default
  * models will get tested. */
-#define FORCE_INPUT					0
+#define FORCE_INPUT					1
 
 /* Define the minimum latent size of model. */
 #define MIN_MODEL_LATENT_SPACE		4

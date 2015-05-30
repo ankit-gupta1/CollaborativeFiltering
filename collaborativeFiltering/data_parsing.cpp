@@ -9,7 +9,7 @@
 #include <fstream>
 #include "rapidjson/document.h"     
 #include "rapidjson/prettywriter.h"
-#include "rapidjson/filestream.h"
+#include "rapidjson/filereadstream.h"
 #include "collab_filtering.h"
 #include "utils.h"
 #include <dirent.h>
